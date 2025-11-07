@@ -100,20 +100,20 @@ void Renderer::DrawInstructionsScreen() {
     DrawText(poisonSubText.c_str(), leftMargin + 10, currentY + lineHeight - 5, textFontSize - 2, LIGHTGRAY);
     currentY += lineHeight * 2;
     
-    // Gold Apple
+    // Pomme Plus
     DrawRectangle(leftMargin - 35, currentY - 2, 25, 25, GameConstants::GOLD_COLOR);
-    std::string goldText = "Gold Apple (Orange) - 4%: Score +2, Resistance 10s";
-    DrawText(goldText.c_str(), leftMargin, currentY, textFontSize, WHITE);
-    std::string goldSubText = "  Can pass through own body, works when poisoned";
-    DrawText(goldSubText.c_str(), leftMargin + 10, currentY + lineHeight - 5, textFontSize - 2, LIGHTGRAY);
+    std::string pommePlusText = "Pomme Plus (Orange) - 4%: Score +2, Resistance 10s";
+    DrawText(pommePlusText.c_str(), leftMargin, currentY, textFontSize, WHITE);
+    std::string pommePlusSubText = "  Can pass through own body, works when poisoned";
+    DrawText(pommePlusSubText.c_str(), leftMargin + 10, currentY + lineHeight - 5, textFontSize - 2, LIGHTGRAY);
     currentY += lineHeight * 2;
     
-    // Enchanted Gold Apple
+    // Pomme Supreme
     DrawRectangle(leftMargin - 35, currentY - 2, 25, 25, GameConstants::ENCHANTED_GOLD_COLOR);
-    std::string enchantedText = "Enchanted Gold (Yellow) - 1%: Score +2, Resistance II 10s";
-    DrawText(enchantedText.c_str(), leftMargin, currentY, textFontSize, WHITE);
-    std::string enchantedSubText = "  Pass through body + walls, works when poisoned";
-    DrawText(enchantedSubText.c_str(), leftMargin + 10, currentY + lineHeight - 5, textFontSize - 2, LIGHTGRAY);
+    std::string pommeText = "Pomme Supreme (Yellow) - 1%: Score +2, Resistance II 10s";
+    DrawText(pommeText.c_str(), leftMargin, currentY, textFontSize, WHITE);
+    std::string pommeSubText = "  Pass through body + walls, works when poisoned";
+    DrawText(pommeSubText.c_str(), leftMargin + 10, currentY + lineHeight - 5, textFontSize - 2, LIGHTGRAY);
     currentY += lineHeight * 2;
     
     // Purple Apple
@@ -232,9 +232,9 @@ void Renderer::DrawGame(const GameState& state) {
     // Draw apples
     for (const auto& apple : state.apples) {
         Color foodColor;
-        if (apple.type == ENCHANTED_GOLDEN) {
+        if (apple.type == POMME_SUPREME) {
             foodColor = GameConstants::ENCHANTED_GOLD_COLOR;
-        } else if (apple.type == GOLDEN) {
+        } else if (apple.type == POMME_PLUS) {
             foodColor = GameConstants::GOLD_COLOR;
         } else if (apple.type == POISONOUS) {
             foodColor = GameConstants::POISON_COLOR;

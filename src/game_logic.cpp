@@ -188,8 +188,8 @@ void GameLogic::HandleAppleConsumption(GameState& state, int eatenAppleIndex) {
         } else {
             state.snake.pop_back();
         }
-    } else if (eatenFoodType == GOLDEN || eatenFoodType == ENCHANTED_GOLDEN) {
-        // Gold apple
+    } else if (eatenFoodType == POMME_PLUS || eatenFoodType == POMME_SUPREME) {
+        // Pomme Plus or Pomme Supreme
         state.score += 2;
         state.UpdateHighScore();
         
@@ -197,7 +197,7 @@ void GameLogic::HandleAppleConsumption(GameState& state, int eatenAppleIndex) {
         state.canIntersectSelf = true;
         state.immunityTimer = GameConstants::IMMUNITY_DURATION;
         
-        if (eatenFoodType == ENCHANTED_GOLDEN) {
+        if (eatenFoodType == POMME_SUPREME) {
             state.canPassWalls = true;
             state.wallImmunityTimer = GameConstants::WALL_IMMUNITY_DURATION;
         }

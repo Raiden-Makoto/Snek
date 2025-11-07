@@ -13,7 +13,7 @@ struct Direction {
     int dy;
 };
 
-enum FoodType { REGULAR, POISONOUS, GOLDEN, ENCHANTED_GOLDEN, TELEPORT };
+enum FoodType { REGULAR, POISONOUS, POMME_PLUS, POMME_SUPREME, TELEPORT };
 enum GameMode { MODE_REGULAR, MODE_ACCELERATED };
 
 struct Apple {

@@ -1,0 +1,77 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install raylib
+        run: brew install raylib
+      - name: Build
+        run: |
+          mkdir -p build
+          cd build
+          cmake ..
+          make
+      - name: Create distribution
+        run: |
+          mkdir -p dist/SnakeGame-macOS
+          cp build/snake dist/SnakeGame-macOS/
+          cp -r sounds dist/SnakeGame-macOS/
+          cd dist
+          zip -r SnakeGame-macOS.zip SnakeGame-macOS/
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: SnakeGame-macOS
+          path: dist/SnakeGame-macOS.zip
+
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libraylib-dev libasound2-dev libgl1-mesa-dev libx11-dev libxrandr-dev
+      - name: Build
+        run: |
+          mkdir -p build
+          cd build
+          cmake ..
+          make
+      - name: Create distribution
+        run: |
+          mkdir -p dist/SnakeGame-Linux
+          cp build/snake dist/SnakeGame-Linux/
+          cp -r sounds dist/SnakeGame-Linux/
+          cd dist
+          tar -czf SnakeGame-Linux.tar.gz SnakeGame-Linux/
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: SnakeGame-Linux
+          path: dist/SnakeGame-Linux.tar.gz
+
+  release:
+    needs: [build-macos, build-linux]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v3
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            SnakeGame-macOS/SnakeGame-macOS.zip
+            SnakeGame-Linux/SnakeGame-Linux.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+

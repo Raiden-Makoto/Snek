@@ -23,16 +23,16 @@ A classic Snake game built with C++ and raylib, featuring multiple apple types, 
    - Pauses movement for 0.5 seconds
    - Applies "Poisoned" debuff for 10 seconds
    - During debuff: Cannot eat regular or purple apples (they disappear without effect)
-   - Gold apples still work during debuff
+   - Pomme Plus apples still work during debuff
 
-3. **Gold Apple (Orange)** - 4% spawn rate
+3. **Pomme Plus (Orange)** - 4% spawn rate
    - Increases score by 2
    - Snake grows by 2 units
    - Grants "Resistance" for 10 seconds
    - Allows self-intersection (snake can pass through its own body)
    - Always works, even when poisoned
 
-4. **Enchanted Gold Apple (Yellow)** - 1% spawn rate
+4. **Pomme Supreme (Yellow)** - 1% spawn rate
    - Increases score by 2
    - Snake grows by 2 units
    - Grants "Resistance II" for 10 seconds
@@ -118,7 +118,7 @@ Or use the provided script:
 
 1. The snake starts as a single segment at a random location
 2. The snake does not move until the first key press
-3. Eating regular/gold apples increases score and length
+3. Eating regular/pomme plus apples increases score and length
 4. Eating poisonous apples reverses direction and applies debuff
 5. Eating purple apples teleports the snake (no growth)
 6. Colliding with walls or self (without immunity) ends the game
@@ -134,7 +134,7 @@ Or use the provided script:
 ## Notes
 
 - All timers are frozen during pause and resume delay
-- Gold apples always work, even when poisoned
+- Pomme Plus apples always work, even when poisoned
 - Purple apples maintain snake length when teleporting
 - Direction queue prevents missed inputs from rapid key presses
 - Snake head is drawn on top of body segments for clear collision visualization

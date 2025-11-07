@@ -2,15 +2,51 @@
 #include "raylib.h"
 #include <ctime>
 #include <algorithm>
+#include <string>
+#include <cstdio>
 
 void GameState::Initialize() {
+    // Try to find sounds directory (check multiple possible paths)
+    // This handles different deployment scenarios
+    std::string soundsPath = "sounds/";
+    
+    // Helper function to check if a path exists (simple check)
+    auto fileExists = [](const char* path) -> bool {
+        FILE* file = fopen(path, "r");
+        if (file) {
+            fclose(file);
+            return true;
+        }
+        return false;
+    };
+    
+    // Try different paths
+    const char* testPaths[] = {
+        "sounds/apple.mp3",           // Same directory as executable
+        "../sounds/apple.mp3",        // Parent directory
+        "../Resources/sounds/apple.mp3", // macOS app bundle
+        "./sounds/apple.mp3",         // Current directory
+    };
+    
+    for (const char* testPath : testPaths) {
+        if (fileExists(testPath)) {
+            // Extract directory path
+            std::string path = testPath;
+            size_t lastSlash = path.find_last_of("/\\");
+            if (lastSlash != std::string::npos) {
+                soundsPath = path.substr(0, lastSlash + 1);
+            }
+            break;
+        }
+    }
+    
     // Load sound effects
-    appleSound = LoadSound("sounds/apple.mp3");
-    poisonSound = LoadSound("sounds/poison.mp3");
-    goldenSound = LoadSound("sounds/golden.mp3");
-    purpleSound = LoadSound("sounds/purple.mp3");
-    gameOverSound = LoadSound("sounds/gameover.mp3");
-    pauseSound = LoadSound("sounds/pause.mp3");
+    appleSound = LoadSound((soundsPath + "apple.mp3").c_str());
+    poisonSound = LoadSound((soundsPath + "poison.mp3").c_str());
+    goldenSound = LoadSound((soundsPath + "golden.mp3").c_str());
+    purpleSound = LoadSound((soundsPath + "purple.mp3").c_str());
+    gameOverSound = LoadSound((soundsPath + "gameover.mp3").c_str());
+    pauseSound = LoadSound((soundsPath + "pause.mp3").c_str());
     
     // Initialize random seed
     SetRandomSeed((unsigned int)std::time(nullptr));
@@ -128,9 +164,9 @@ bool GameState::IsValidPosition(int col, int row) const {
 FoodType GameState::GetRandomFoodType() const {
     int foodRoll = GetRandomValue(1, 100);
     if (foodRoll <= 4) {
-        return GOLDEN;
+        return POMME_PLUS;
     } else if (foodRoll <= 5) {
-        return ENCHANTED_GOLDEN;
+        return POMME_SUPREME;
     } else if (foodRoll <= 15) {
         return POISONOUS;
     } else if (foodRoll <= 18) {
