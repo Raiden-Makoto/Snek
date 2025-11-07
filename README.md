@@ -1,6 +1,6 @@
 # Snake Game
 
-A classic Snake game built with C++ and raylib, featuring multiple apple types, status effects, and modern game mechanics.
+A classic Snake game built with C++ and raylib, featuring multiple apple types, status effects (inspired by Minecraft), and modern game mechanics (includes special sound effects!!).
 
 ## Features
 
