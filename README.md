@@ -87,13 +87,14 @@ A classic Snake game built with C++ and raylib, featuring multiple apple types, 
 
 ## Building and Running
 
-### Prerequisites
+### Desktop Build
 
+#### Prerequisites
 - CMake (version 3.10 or higher)
 - raylib library
-- C++ compiler (C++11 or higher)
+- C++ compiler (C++17 or higher)
 
-### Build Instructions
+#### Build Instructions
 
 ```bash
 mkdir build
@@ -102,7 +103,7 @@ cmake ..
 make
 ```
 
-### Run
+#### Run
 
 ```bash
 ./snake
@@ -113,6 +114,69 @@ Or use the provided script:
 ```bash
 ./run.sh
 ```
+
+### Web Build (WebAssembly)
+
+#### Quick Build (One Command)
+
+```bash
+./setup-and-build-web.sh
+```
+
+This script will:
+1. Install Emscripten (if not already installed)
+2. Build raylib for web (if needed)
+3. Build your game to WebAssembly
+
+#### What Gets Created
+
+After building, you'll have in `build-web/`:
+- `snake.html` - Main HTML file
+- `snake.js` - JavaScript glue code  
+- `snake.wasm` - WebAssembly binary
+- `snake.data` - Preloaded sound files
+- `sounds/` - Sound files directory
+
+#### Testing the Web Version
+
+```bash
+cd build-web
+python3 -m http.server 8000
+# Open http://localhost:8000/snake.html
+```
+
+**Important:** You must serve via HTTP server (not `file://` URL) due to CORS restrictions for WebAssembly and audio files.
+
+#### Web Build Troubleshooting
+
+**"emcc not found"**
+→ The script will install Emscripten automatically, but if it fails, manually run:
+```bash
+source emsdk/emsdk_env.sh
+```
+
+**"raylib not found"**
+→ The script will build it automatically from source
+
+**Build fails**
+→ Make sure all source files are present in `src/`
+
+**Game doesn't load in browser**
+→ Must use HTTP server (not `file://` URL)
+
+## Deployment
+
+### Vercel
+
+The project is configured for Vercel deployment. See `DEPLOY_VERCEL.md` for details.
+
+**Quick deploy:**
+```bash
+npm i -g vercel
+vercel
+```
+
+The `vercel.json` file handles the build process automatically. **raylib and emsdk are in .gitignore** - they will be built during deployment (takes 5-10 minutes).
 
 ## Game Rules
 
