@@ -1,10 +1,6 @@
 # Build directories
 build/
-build-web/
 build-static/
-
-# Emscripten SDK (can be reinstalled)
-emsdk/
 
 # Raylib source (can be rebuilt)
 raylib/

@@ -10,6 +10,10 @@ void GameState::Initialize() {
     // This handles different deployment scenarios
     std::string soundsPath = "sounds/";
     
+    #ifdef PLATFORM_WEB
+    // On web, preloaded files are at /sounds/
+    soundsPath = "/sounds/";
+    #else
     // Helper function to check if a path exists (simple check)
     auto fileExists = [](const char* path) -> bool {
         FILE* file = fopen(path, "r");
@@ -39,8 +43,9 @@ void GameState::Initialize() {
             break;
         }
     }
+    #endif
     
-    // Load sound effects
+    // Load sound effects (with error checking for web)
     appleSound = LoadSound((soundsPath + "apple.mp3").c_str());
     poisonSound = LoadSound((soundsPath + "poison.mp3").c_str());
     goldenSound = LoadSound((soundsPath + "golden.mp3").c_str());

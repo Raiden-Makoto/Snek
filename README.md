@@ -1,204 +1,86 @@
 # Snake Game
 
-A classic Snake game built with C++ and raylib, featuring multiple apple types, status effects (inspired by Minecraft), and modern game mechanics (includes special sound effects!!).
+A feature-rich Snake game built with HTML5 Canvas and JavaScript.
 
 ## Features
 
-### Core Gameplay
-- **720x800 pixel window** with a 720x720 game board and an 80-pixel score display area
-- **Checkerboard pattern** with alternating black and very dark gray (RGB 18, 18, 18) 30x30 unit cells
-- **White border** (1 full unit thick) around the playable area
-- **Smooth movement** at one unit every 0.25 seconds
-- **Direction queue** to handle rapid key presses and prevent missed inputs
-- **Snake growth** by 2 units for every apple eaten (except purple apples)
+- **Two Game Modes:**
+  - **Regular**: Classic snake gameplay
+  - **Accelerated**: Start with 3 apples, eating spawns 3 more, faster movement (0.20s vs 0.25s)
 
-### Apple Types
+- **Special Apple Types:**
+  - **Regular Apple (Red)**: 82% spawn chance - Score +1, Grow +2 units
+  - **Poisonous Apple (Brown)**: 10% spawn chance - Reverses direction, 10s "cannot eat apples" debuff
+  - **Pomme Plus (Orange)**: 4% spawn chance - Score +2, 10s self-intersection immunity
+  - **Pomme Supreme (Yellow)**: 1% spawn chance - Score +2, 10s self-intersection + wall-wrapping immunity
+  - **Purple Apple (Purple)**: 3% spawn chance - Teleports snake to random location (no growth)
 
-1. **Regular Apple (Red)** - 82% spawn rate
-   - Increases score by 1
-   - Snake grows by 2 units
+- **Game Mechanics:**
+  - Continuous movement after first key press
+  - Direction queue for rapid key presses
+  - Collision detection (walls and self)
+  - Status effect timers with visual countdowns
+  - Pause/resume with 2-second countdown
+  - High score tracking (separate for each mode)
 
-2. **Poisonous Apple (Light Brown)** - 10% spawn rate
-   - Reverses snake direction
-   - Pauses movement for 0.5 seconds
-   - Applies "Poisoned" debuff for 10 seconds
-   - During debuff: Cannot eat regular or purple apples (they disappear without effect)
-   - Pomme Plus apples still work during debuff
+## Controls
 
-3. **Pomme Plus (Orange)** - 4% spawn rate
-   - Increases score by 2
-   - Snake grows by 2 units
-   - Grants "Resistance" for 10 seconds
-   - Allows self-intersection (snake can pass through its own body)
-   - Always works, even when poisoned
+- **Arrow Keys / WASD**: Move snake
+- **P**: Pause/Unpause game
+- **Q**: Show game over screen (or quit)
+- **ESC**: Exit game
+- **R / Space**: Restart (on game over)
+- **M**: Return to menu (on game over)
 
-4. **Pomme Supreme (Yellow)** - 1% spawn rate
-   - Increases score by 2
-   - Snake grows by 2 units
-   - Grants "Resistance II" for 10 seconds
-   - Allows self-intersection AND wall-wrapping (snake wraps around edges)
-   - Always works, even when poisoned
+## Running the Game
 
-5. **Purple Apple (Purple)** - 3% spawn rate
-   - Teleports snake to a random valid location
-   - Randomly reorients the snake
-   - Does NOT increase snake length
-   - Pauses movement until user presses a key
-   - Cannot be eaten when poisoned
+### Simple Method (Local File)
+Just open `index.html` in your web browser. Note: Sound files may not load due to browser security restrictions with `file://` URLs.
 
-### Controls
+### Recommended Method (Local Server)
+Run a local HTTP server:
 
-- **Arrow Keys** or **WASD** - Change snake direction
-- **P** - Pause/unpause game (toggle)
-- **Q** - Show game over screen (during gameplay) or quit (on game over screen)
-- **ESC** - Exit game immediately
-- **R** or **Space** - Restart game (on game over screen)
+```bash
+# Python 3
+python3 -m http.server 8000
 
-### Game Features
+# Python 2
+python -m SimpleHTTPServer 8000
 
-- **Score System**
-  - Current score displayed in center of score area
-  - High score displayed in top-right corner
-  - Both scores shown on game over screen
+# Node.js (with http-server installed)
+npx http-server -p 8000
+```
 
-- **Status Effect Display**
-  - Real-time countdown timers in top-right corner
-  - "Poisoned: X" - Light brown, shows remaining debuff time
-  - "Resistance: X" - Orange, shows remaining self-intersection time
-  - "Resistance II: X" - Yellow, shows remaining wall-wrapping time
+Then open `http://localhost:8000` in your browser.
 
-- **Pause System**
-  - Press P to pause/unpause
-  - 2-second countdown before resuming
-  - Status effect timers are frozen during pause and resume delay
+## File Structure
 
-- **Game Over Screen**
-  - Displays final score and high score
-  - Options to restart (R/Space) or quit (Q/ESC)
-  - Can be triggered by collision or by pressing Q during gameplay
+```
+Snek/
+├── index.html      # Main HTML file
+├── snake.js        # Game logic and rendering
+├── sounds/         # Sound effects directory
+│   ├── apple.mp3
+│   ├── poison.mp3
+│   ├── golden.mp3
+│   ├── purple.mp3
+│   ├── gameover.mp3
+│   └── pause.mp3
+└── README.md       # This file
+```
 
-### Visual Design
+## Building the C++ Version
 
-- **Snake**: Green body with darker green head
-- **Border**: White, 1 full unit thick on all sides
-- **Background**: Checkerboard pattern (black and very dark gray)
-- **Score Area**: Black background with white text
-- **Game Over Overlay**: Semi-transparent black with centered text
-
-## Building and Running
-
-### Desktop Build
-
-#### Prerequisites
-- CMake (version 3.10 or higher)
-- raylib library
-- C++ compiler (C++17 or higher)
-
-#### Build Instructions
+The C++ version using raylib is still available. To build it:
 
 ```bash
 mkdir build
 cd build
 cmake ..
 make
-```
-
-#### Run
-
-```bash
 ./snake
 ```
 
-Or use the provided script:
+## License
 
-```bash
-./run.sh
-```
-
-### Web Build (WebAssembly)
-
-#### Quick Build (One Command)
-
-```bash
-./setup-and-build-web.sh
-```
-
-This script will:
-1. Install Emscripten (if not already installed)
-2. Build raylib for web (if needed)
-3. Build your game to WebAssembly
-
-#### What Gets Created
-
-After building, you'll have in `build-web/`:
-- `snake.html` - Main HTML file
-- `snake.js` - JavaScript glue code  
-- `snake.wasm` - WebAssembly binary
-- `snake.data` - Preloaded sound files
-- `sounds/` - Sound files directory
-
-#### Testing the Web Version
-
-```bash
-cd build-web
-python3 -m http.server 8000
-# Open http://localhost:8000/snake.html
-```
-
-**Important:** You must serve via HTTP server (not `file://` URL) due to CORS restrictions for WebAssembly and audio files.
-
-#### Web Build Troubleshooting
-
-**"emcc not found"**
-→ The script will install Emscripten automatically, but if it fails, manually run:
-```bash
-source emsdk/emsdk_env.sh
-```
-
-**"raylib not found"**
-→ The script will build it automatically from source
-
-**Build fails**
-→ Make sure all source files are present in `src/`
-
-**Game doesn't load in browser**
-→ Must use HTTP server (not `file://` URL)
-
-## Deployment
-
-### Vercel
-
-The project is configured for Vercel deployment. See `DEPLOY_VERCEL.md` for details.
-
-**Quick deploy:**
-```bash
-npm i -g vercel
-vercel
-```
-
-The `vercel.json` file handles the build process automatically. **raylib and emsdk are in .gitignore** - they will be built during deployment (takes 5-10 minutes).
-
-## Game Rules
-
-1. The snake starts as a single segment at a random location
-2. The snake does not move until the first key press
-3. Eating regular/pomme plus apples increases score and length
-4. Eating poisonous apples reverses direction and applies debuff
-5. Eating purple apples teleports the snake (no growth)
-6. Colliding with walls or self (without immunity) ends the game
-7. Status effects are displayed with countdown timers
-8. High score persists throughout the session
-
-## Status Effects
-
-- **Poisoned**: Cannot eat regular or purple apples for 10 seconds
-- **Resistance**: Can intersect with own body for 10 seconds
-- **Resistance II**: Can intersect with own body AND pass through walls for 10 seconds
-
-## Notes
-
-- All timers are frozen during pause and resume delay
-- Pomme Plus apples always work, even when poisoned
-- Purple apples maintain snake length when teleporting
-- Direction queue prevents missed inputs from rapid key presses
-- Snake head is drawn on top of body segments for clear collision visualization
+See LICENSE file for details.

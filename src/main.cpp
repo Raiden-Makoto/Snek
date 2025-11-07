@@ -6,8 +6,16 @@
 #include <deque>
 
 int main() {
-    // Initialize window
+    // Initialize window first (required for web)
     InitWindow(GameConstants::SCREEN_WIDTH, GameConstants::SCREEN_HEIGHT, "Snake Game");
+    
+    #ifdef PLATFORM_WEB
+    // GL context initialization is handled by gl_init_post.js
+    // Just poll events to let GLFW finish setup
+    PollInputEvents();
+    #endif
+    
+    // Initialize audio after window
     InitAudioDevice();
     SetTargetFPS(60);
     
