@@ -19,6 +19,12 @@ cmake .. > /dev/null
 echo "Building..."
 make
 
+# Copy sounds directory to build if it doesn't exist
+if [ ! -d "sounds" ]; then
+    echo "Copying sounds directory to build..."
+    cp -r ../sounds .
+fi
+
 # Run the program
 echo "Running snake game..."
 ./snake

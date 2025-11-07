@@ -25,6 +25,17 @@ int main() {
     // Initialize window
     InitWindow(screenWidth, screenHeight, "Snake Game");
 
+    // Initialize audio device
+    InitAudioDevice();
+
+    // Load sound effects (sounds directory is copied to build/ by run.sh)
+    Sound appleSound = LoadSound("sounds/apple.mp3");
+    Sound poisonSound = LoadSound("sounds/poison.mp3");
+    Sound goldenSound = LoadSound("sounds/golden.mp3");
+    Sound purpleSound = LoadSound("sounds/purple.mp3");
+    Sound gameOverSound = LoadSound("sounds/gameover.mp3");
+    Sound pauseSound = LoadSound("sounds/pause.mp3");
+
     // Set target FPS
     SetTargetFPS(60);
 
@@ -86,6 +97,11 @@ int main() {
     float resumeDelayTimer = 0.0f;
     const float resumeDelayDuration = 2.0f;
     bool isResuming = false;
+    
+    // Sound effect timers
+    float poisonSoundTimer = 0.0f; // Timer for playing poison sound every second
+    float pauseSoundTimer = 0.0f; // Timer for playing pause sound every second
+    bool gameOverSoundPlayed = false; // Track if game over sound has been played
     
     do {
         foodCol = GetRandomValue(0, gridWidth - 1);
@@ -235,10 +251,21 @@ int main() {
             // Update cannot eat apples debuff timer
             if (cannotEatApples) {
                 cannotEatTimer -= deltaTime;
+                
+                // Play poison sound every second
+                poisonSoundTimer -= deltaTime;
+                if (poisonSoundTimer <= 0.0f) {
+                    PlaySound(poisonSound);
+                    poisonSoundTimer = 1.0f; // Reset to 1 second
+                }
+                
                 if (cannotEatTimer <= 0.0f) {
                     cannotEatApples = false;
                     cannotEatTimer = 0.0f;
+                    poisonSoundTimer = 0.0f; // Reset poison sound timer
                 }
+            } else {
+                poisonSoundTimer = 0.0f; // Reset if not poisoned
             }
             
             // Update wall-wrapping immunity timer
@@ -263,10 +290,21 @@ int main() {
         // Update resume delay timer (after unpausing)
         if (isResuming) {
             resumeDelayTimer -= deltaTime;
+            
+            // Play pause sound every second during countdown
+            pauseSoundTimer -= deltaTime;
+            if (pauseSoundTimer <= 0.0f) {
+                PlaySound(pauseSound);
+                pauseSoundTimer = 1.0f; // Reset to 1 second
+            }
+            
             if (resumeDelayTimer <= 0.0f) {
                 isResuming = false;
                 resumeDelayTimer = 0.0f;
+                pauseSoundTimer = 0.0f; // Reset pause sound timer
             }
+        } else {
+            pauseSoundTimer = 0.0f; // Reset if not resuming
         }
         
         // Handle quit input
@@ -289,6 +327,7 @@ int main() {
                 // Unpause - start resume delay
                 isResuming = true;
                 resumeDelayTimer = resumeDelayDuration;
+                pauseSoundTimer = 1.0f; // Initialize pause sound timer to play immediately
                 isUserPaused = false;
             } else if (!isResuming) {
                 // Pause
@@ -346,6 +385,9 @@ int main() {
                 isUserPaused = false;
                 isResuming = false;
                 resumeDelayTimer = 0.0f;
+                poisonSoundTimer = 0.0f;
+                pauseSoundTimer = 0.0f;
+                gameOverSoundPlayed = false; // Reset game over sound flag
             }
         }
         
@@ -437,6 +479,10 @@ int main() {
                                 highScore = score;
                             }
                             gameOver = true;
+                            if (!gameOverSoundPlayed) {
+                                PlaySound(gameOverSound);
+                                gameOverSoundPlayed = true;
+                            }
                         }
                     }
                     
@@ -460,6 +506,10 @@ int main() {
                                 highScore = score;
                             }
                             gameOver = true;
+                            if (!gameOverSoundPlayed) {
+                                PlaySound(gameOverSound);
+                                gameOverSoundPlayed = true;
+                            }
                         } else {
                             // Check if snake ate food
                             bool ateFood = (newHead.col == foodCol && newHead.row == foodRow);
@@ -491,6 +541,7 @@ int main() {
                                     // Enable cannot eat apples debuff for 5 seconds
                                     cannotEatApples = true;
                                     cannotEatTimer = cannotEatDuration;
+                                    poisonSoundTimer = 1.0f; // Initialize poison sound timer to play immediately
                                 } else if (foodType == TELEPORT) {
                                     // Purple apple - only works if not debuffed (same as regular apples)
                                     if (!cannotEatApples) {
@@ -544,6 +595,9 @@ int main() {
                                         dx = 0;
                                         dy = 0;
                                         moveTimer = 0.0f; // Reset movement timer
+                                        
+                                        // Play purple sound
+                                        PlaySound(purpleSound);
                                     } else {
                                         // If debuffed, purple apple is consumed but doesn't teleport
                                         // Remove the tail to keep snake length the same (no growth)
@@ -569,6 +623,9 @@ int main() {
                                         canPassWalls = true;
                                         wallImmunityTimer = wallImmunityDuration;
                                     }
+                                    
+                                    // Play golden sound
+                                    PlaySound(goldenSound);
                                 } else {
                                     // Regular apple - only works if not debuffed
                                     if (!cannotEatApples) {
@@ -582,6 +639,9 @@ int main() {
                                         // 1. Don't remove tail (already grows by 1 from adding new head)
                                         // 2. Add an extra segment at the tail to grow by 2 total
                                         snake.push_back(snake.back());
+                                        
+                                        // Play apple sound
+                                        PlaySound(appleSound);
                                     } else {
                                         // If debuffed, apple is consumed but doesn't give benefits
                                         // Remove the tail to keep snake length the same
@@ -826,6 +886,17 @@ int main() {
         EndDrawing();
     }
 
+    // Cleanup - unload sounds
+    UnloadSound(appleSound);
+    UnloadSound(poisonSound);
+    UnloadSound(goldenSound);
+    UnloadSound(purpleSound);
+    UnloadSound(gameOverSound);
+    UnloadSound(pauseSound);
+    
+    // Close audio device
+    CloseAudioDevice();
+    
     // Cleanup
     CloseWindow();
 
