@@ -80,6 +80,12 @@ int main() {
     const float pauseDuration = 0.5f;
     bool isPaused = false;
     
+    // User pause system (P key toggle)
+    bool isUserPaused = false;
+    float resumeDelayTimer = 0.0f;
+    const float resumeDelayDuration = 2.0f;
+    bool isResuming = false;
+    
     do {
         foodCol = GetRandomValue(0, gridWidth - 1);
         foodRow = GetRandomValue(0, gridHeight - 1);
@@ -115,34 +121,36 @@ int main() {
     while (!WindowShouldClose()) {
         float deltaTime = GetFrameTime();
         
-        // Update immunity timer
-        if (canIntersectSelf) {
-            immunityTimer -= deltaTime;
-            if (immunityTimer <= 0.0f) {
-                canIntersectSelf = false;
-                immunityTimer = 0.0f;
+        // Update immunity timer (only when not user paused or resuming)
+        if (!isUserPaused && !isResuming) {
+            if (canIntersectSelf) {
+                immunityTimer -= deltaTime;
+                if (immunityTimer <= 0.0f) {
+                    canIntersectSelf = false;
+                    immunityTimer = 0.0f;
+                }
+            }
+            
+            // Update cannot eat apples debuff timer
+            if (cannotEatApples) {
+                cannotEatTimer -= deltaTime;
+                if (cannotEatTimer <= 0.0f) {
+                    cannotEatApples = false;
+                    cannotEatTimer = 0.0f;
+                }
+            }
+            
+            // Update wall-wrapping immunity timer
+            if (canPassWalls) {
+                wallImmunityTimer -= deltaTime;
+                if (wallImmunityTimer <= 0.0f) {
+                    canPassWalls = false;
+                    wallImmunityTimer = 0.0f;
+                }
             }
         }
         
-        // Update cannot eat apples debuff timer
-        if (cannotEatApples) {
-            cannotEatTimer -= deltaTime;
-            if (cannotEatTimer <= 0.0f) {
-                cannotEatApples = false;
-                cannotEatTimer = 0.0f;
-            }
-        }
-        
-        // Update wall-wrapping immunity timer
-        if (canPassWalls) {
-            wallImmunityTimer -= deltaTime;
-            if (wallImmunityTimer <= 0.0f) {
-                canPassWalls = false;
-                wallImmunityTimer = 0.0f;
-            }
-        }
-        
-        // Update movement pause timer
+        // Update movement pause timer (for poisonous apple)
         if (isPaused) {
             pauseTimer -= deltaTime;
             if (pauseTimer <= 0.0f) {
@@ -151,11 +159,35 @@ int main() {
             }
         }
         
+        // Update resume delay timer (after unpausing)
+        if (isResuming) {
+            resumeDelayTimer -= deltaTime;
+            if (resumeDelayTimer <= 0.0f) {
+                isResuming = false;
+                resumeDelayTimer = 0.0f;
+            }
+        }
+        
+        // Handle quit input (available at all times)
+        if (IsKeyPressed(KEY_ESCAPE) || IsKeyPressed(KEY_Q)) {
+            break; // Exit game loop
+        }
+        
+        // Handle user pause toggle (P key) - available when game is not over
+        if (!gameOver && IsKeyPressed(KEY_P)) {
+            if (isUserPaused) {
+                // Unpause - start resume delay
+                isResuming = true;
+                resumeDelayTimer = resumeDelayDuration;
+                isUserPaused = false;
+            } else if (!isResuming) {
+                // Pause
+                isUserPaused = true;
+            }
+        }
+        
         // Handle game over screen input
         if (gameOver) {
-            if (IsKeyPressed(KEY_ESCAPE) || IsKeyPressed(KEY_Q)) {
-                break; // Exit game loop
-            }
             if (IsKeyPressed(KEY_R) || IsKeyPressed(KEY_SPACE)) {
                 // Restart game - reset all state
                 gameOver = false;
@@ -200,10 +232,13 @@ int main() {
                 cannotEatTimer = 0.0f;
                 isPaused = false;
                 pauseTimer = 0.0f;
+                isUserPaused = false;
+                isResuming = false;
+                resumeDelayTimer = 0.0f;
             }
         }
         
-        if (!gameOver) {
+        if (!gameOver && !isUserPaused && !isResuming) {
             // Handle input for direction change - add to deque
             if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) {
                 Direction newDir = {0, -1};
@@ -244,13 +279,13 @@ int main() {
             }
             
             // Update movement timer (always runs, even when stationary, to allow starting)
-            // Skip timer update if paused
-            if (!isPaused) {
+            // Skip timer update if paused (poisonous apple pause) or user paused or resuming
+            if (!isPaused && !isUserPaused && !isResuming) {
                 moveTimer += deltaTime;
             }
             
-            // Process movement when timer elapses (skip if paused)
-            if (!isPaused && moveTimer >= moveInterval) {
+            // Process movement when timer elapses (skip if paused or resuming)
+            if (!isPaused && !isUserPaused && !isResuming && moveTimer >= moveInterval) {
                 moveTimer = 0.0f;
                 
                 // Process direction queue (get next direction if available)
@@ -536,6 +571,42 @@ int main() {
             DrawRectangle((head.col + borderOffset) * cellSize, boardStartY + (head.row + borderOffset) * cellSize, cellSize, cellSize, snakeHeadColor);
         }
         
+        // Draw pause screen overlay
+        if (isUserPaused && !gameOver) {
+            // Semi-transparent overlay
+            DrawRectangle(0, 0, screenWidth, screenHeight, {0, 0, 0, 180});
+            
+            // Paused text
+            const int pauseFontSize = 60;
+            string pauseText = "PAUSED";
+            int pauseTextWidth = MeasureText(pauseText.c_str(), pauseFontSize);
+            int pauseX = (screenWidth - pauseTextWidth) / 2;
+            int pauseY = screenHeight / 2 - 30;
+            DrawText(pauseText.c_str(), pauseX, pauseY, pauseFontSize, WHITE);
+            
+            // Instructions
+            const int instructionFontSize = 24;
+            string resumeText = "Press P to resume";
+            int resumeTextWidth = MeasureText(resumeText.c_str(), instructionFontSize);
+            int resumeX = (screenWidth - resumeTextWidth) / 2;
+            DrawText(resumeText.c_str(), resumeX, pauseY + 80, instructionFontSize, LIGHTGRAY);
+        }
+        
+        // Draw resuming countdown overlay
+        if (isResuming && !gameOver) {
+            // Semi-transparent overlay
+            DrawRectangle(0, 0, screenWidth, screenHeight, {0, 0, 0, 180});
+            
+            // Resuming text with countdown
+            const int resumeFontSize = 40;
+            int countdown = (int)ceil(resumeDelayTimer);
+            string resumeText = "Resuming in " + to_string(countdown) + "...";
+            int resumeTextWidth = MeasureText(resumeText.c_str(), resumeFontSize);
+            int resumeX = (screenWidth - resumeTextWidth) / 2;
+            int resumeY = screenHeight / 2;
+            DrawText(resumeText.c_str(), resumeX, resumeY, resumeFontSize, WHITE);
+        }
+        
         // Draw game over screen overlay
         if (gameOver) {
             // Semi-transparent overlay
@@ -560,7 +631,7 @@ int main() {
             // Instructions
             const int instructionFontSize = 24;
             string restartText = "Press R or SPACE to restart";
-            string quitText = "Press ESC or Q to quit";
+            string quitText = "Press ESC or Q to quit (anytime)";
             int restartTextWidth = MeasureText(restartText.c_str(), instructionFontSize);
             int quitTextWidth = MeasureText(quitText.c_str(), instructionFontSize);
             int restartX = (screenWidth - restartTextWidth) / 2;
