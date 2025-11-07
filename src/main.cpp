@@ -2,7 +2,7 @@
 #include <ctime>
 #include <vector>
 #include <string>
-#include <queue>
+#include <deque>
 
 using namespace std;
 
@@ -60,8 +60,8 @@ int main() {
     int dx = 0;
     int dy = 0;
     
-    // Queue for pending direction changes
-    queue<Direction> directionQueue;
+    // Deque for pending direction changes (allows access to front and back)
+    deque<Direction> directionQueue;
     
     // Movement timer (move every 0.25 seconds)
     float moveTimer = 0.0f;
@@ -73,38 +73,65 @@ int main() {
         float deltaTime = GetFrameTime();
         
         if (!gameOver) {
-            // Handle input for direction change (only when key is pressed)
+            // Handle input for direction change - add to deque
             if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) {
-                if (dy == 0) { // Prevent reversing into itself
-                    dx = 0;
-                    dy = -1;
+                Direction newDir = {0, -1};
+                // Only add if not reversing current direction and not same as last queued
+                if (((dx == 0 && dy == 0) || dy != 1) && 
+                    (directionQueue.empty() || 
+                     directionQueue.back().dx != newDir.dx || 
+                     directionQueue.back().dy != newDir.dy)) {
+                    directionQueue.push_back(newDir);
                 }
             }
             if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) {
-                if (dy == 0) {
-                    dx = 0;
-                    dy = 1;
+                Direction newDir = {0, 1};
+                if (((dx == 0 && dy == 0) || dy != -1) && 
+                    (directionQueue.empty() || 
+                     directionQueue.back().dx != newDir.dx || 
+                     directionQueue.back().dy != newDir.dy)) {
+                    directionQueue.push_back(newDir);
                 }
             }
             if (IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_A)) {
-                if (dx == 0) {
-                    dx = -1;
-                    dy = 0;
+                Direction newDir = {-1, 0};
+                if (((dx == 0 && dy == 0) || dx != 1) && 
+                    (directionQueue.empty() || 
+                     directionQueue.back().dx != newDir.dx || 
+                     directionQueue.back().dy != newDir.dy)) {
+                    directionQueue.push_back(newDir);
                 }
             }
             if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D)) {
-                if (dx == 0) {
-                    dx = 1;
-                    dy = 0;
+                Direction newDir = {1, 0};
+                if (((dx == 0 && dy == 0) || dx != -1) && 
+                    (directionQueue.empty() || 
+                     directionQueue.back().dx != newDir.dx || 
+                     directionQueue.back().dy != newDir.dy)) {
+                    directionQueue.push_back(newDir);
                 }
             }
             
-            // Move snake automatically at intervals
-            if (dx != 0 || dy != 0) {
-                moveTimer += deltaTime;
-                if (moveTimer >= moveInterval) {
-                    moveTimer = 0.0f;
-                    
+            // Update movement timer (always runs, even when stationary, to allow starting)
+            moveTimer += deltaTime;
+            
+            // Process movement when timer elapses
+            if (moveTimer >= moveInterval) {
+                moveTimer = 0.0f;
+                
+                // Process direction queue (get next direction if available)
+                if (!directionQueue.empty()) {
+                    Direction nextDir = directionQueue.front();
+                    // Only apply if not reversing current direction (or snake is stationary)
+                    if ((dx == 0 && dy == 0) || (nextDir.dx != -dx || nextDir.dy != -dy)) {
+                        dx = nextDir.dx;
+                        dy = nextDir.dy;
+                    }
+                    directionQueue.pop_front();
+                }
+                
+                // Move if we have a direction
+                if (dx != 0 || dy != 0) {
                     // Calculate new head position
                     Position newHead = {snake[0].col + dx, snake[0].row + dy};
                     
