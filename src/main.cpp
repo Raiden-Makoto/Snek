@@ -1,6 +1,8 @@
 #include "raylib.h"
 #include <ctime>
 #include <vector>
+#include <string>
+#include <queue>
 
 using namespace std;
 
@@ -9,9 +11,16 @@ struct Position {
     int row;
 };
 
+struct Direction {
+    int dx;
+    int dy;
+};
+
 int main() {
+    const int boardSize = 720;
+    const int scoreAreaHeight = 80;
     const int screenWidth = 720;
-    const int screenHeight = 720;
+    const int screenHeight = boardSize + scoreAreaHeight; // 800 total
 
     // Initialize window
     InitWindow(screenWidth, screenHeight, "Snake Game");
@@ -20,8 +29,9 @@ int main() {
     SetTargetFPS(60);
 
     const int cellSize = 30;
-    const int totalGridWidth = screenWidth / cellSize;
-    const int totalGridHeight = screenHeight / cellSize;
+    const int boardStartY = scoreAreaHeight; // Board starts below score area
+    const int totalGridWidth = boardSize / cellSize;
+    const int totalGridHeight = boardSize / cellSize;
     // Playable area is reduced by 2 (1 border cell on each side)
     const int gridWidth = totalGridWidth - 2;
     const int gridHeight = totalGridHeight - 2;
@@ -31,6 +41,9 @@ int main() {
     
     // Initialize random seed
     SetRandomSeed((unsigned int)time(nullptr));
+    
+    // Score
+    int score = 0;
     
     // Snake starts as a single segment (in playable area, offset by border)
     vector<Position> snake;
@@ -47,9 +60,12 @@ int main() {
     int dx = 0;
     int dy = 0;
     
-    // Movement timer (move every 0.5 seconds)
+    // Queue for pending direction changes
+    queue<Direction> directionQueue;
+    
+    // Movement timer (move every 0.25 seconds)
     float moveTimer = 0.0f;
-    const float moveInterval = 0.5f;
+    const float moveInterval = 0.25f;
     bool gameOver = false;
 
     // Main game loop
@@ -109,10 +125,40 @@ int main() {
                         if (hitSelf) {
                             gameOver = true;
                         } else {
+                            // Check if snake ate food
+                            bool ateFood = (newHead.col == foodCol && newHead.row == foodRow);
+                            
                             // Move snake (add new head)
                             snake.insert(snake.begin(), newHead);
-                            // For now, remove tail (we'll add food eating later)
-                            snake.pop_back();
+                            
+                            if (ateFood) {
+                                // Increase score
+                                score++;
+                                
+                                // Snake grows by 2 units: 
+                                // 1. Don't remove tail (already grows by 1 from adding new head)
+                                // 2. Add an extra segment at the tail to grow by 2 total
+                                snake.push_back(snake.back());
+                                
+                                // Spawn new food in a location not covered by snake
+                                bool validPosition = false;
+                                do {
+                                    foodCol = GetRandomValue(0, gridWidth - 1);
+                                    foodRow = GetRandomValue(0, gridHeight - 1);
+                                    
+                                    // Check if food position is not on any snake segment
+                                    validPosition = true;
+                                    for (const auto& segment : snake) {
+                                        if (foodCol == segment.col && foodRow == segment.row) {
+                                            validPosition = false;
+                                            break;
+                                        }
+                                    }
+                                } while (!validPosition);
+                            } else {
+                                // Remove tail (snake didn't grow)
+                                snake.pop_back();
+                            }
                         }
                     }
                 }
@@ -124,29 +170,40 @@ int main() {
         // Clear screen
         ClearBackground(BLACK);
         
-        // Draw white border cells (1 cell thick on all sides)
+        // Draw score area background
+        DrawRectangle(0, 0, screenWidth, scoreAreaHeight, BLACK);
+        
+        // Draw score text
+        const int fontSize = 40;
+        string scoreText = "Score: " + to_string(score);
+        int textWidth = MeasureText(scoreText.c_str(), fontSize);
+        int textX = (screenWidth - textWidth) / 2;
+        int textY = (scoreAreaHeight - fontSize) / 2;
+        DrawText(scoreText.c_str(), textX, textY, fontSize, WHITE);
+        
+        // Draw white border cells (1 cell thick on all sides) - offset by score area
         // Top border
         for (int col = 0; col < totalGridWidth; col++) {
-            DrawRectangle(col * cellSize, 0, cellSize, cellSize, WHITE);
+            DrawRectangle(col * cellSize, boardStartY, cellSize, cellSize, WHITE);
         }
         // Bottom border
         for (int col = 0; col < totalGridWidth; col++) {
-            DrawRectangle(col * cellSize, (totalGridHeight - 1) * cellSize, cellSize, cellSize, WHITE);
+            DrawRectangle(col * cellSize, boardStartY + (totalGridHeight - 1) * cellSize, cellSize, cellSize, WHITE);
         }
         // Left border
         for (int row = 1; row < totalGridHeight - 1; row++) {
-            DrawRectangle(0, row * cellSize, cellSize, cellSize, WHITE);
+            DrawRectangle(0, boardStartY + row * cellSize, cellSize, cellSize, WHITE);
         }
         // Right border
         for (int row = 1; row < totalGridHeight - 1; row++) {
-            DrawRectangle((totalGridWidth - 1) * cellSize, row * cellSize, cellSize, cellSize, WHITE);
+            DrawRectangle((totalGridWidth - 1) * cellSize, boardStartY + row * cellSize, cellSize, cellSize, WHITE);
         }
         
-        // Draw checkerboard pattern (only in playable area, offset by border)
+        // Draw checkerboard pattern (only in playable area, offset by border and score area)
         for (int row = 0; row < gridHeight; row++) {
             for (int col = 0; col < gridWidth; col++) {
                 int screenCol = (col + borderOffset) * cellSize;
-                int screenRow = (row + borderOffset) * cellSize;
+                int screenRow = boardStartY + (row + borderOffset) * cellSize;
                 // Alternate colors based on position
                 if ((row + col) % 2 == 0) {
                     DrawRectangle(screenCol, screenRow, cellSize, cellSize, BLACK);
@@ -156,12 +213,12 @@ int main() {
             }
         }
         
-        // Draw food (red square) - offset by border
-        DrawRectangle((foodCol + borderOffset) * cellSize, (foodRow + borderOffset) * cellSize, cellSize, cellSize, RED);
+        // Draw food (red square) - offset by border and score area
+        DrawRectangle((foodCol + borderOffset) * cellSize, boardStartY + (foodRow + borderOffset) * cellSize, cellSize, cellSize, RED);
         
-        // Draw snake (green squares) - offset by border
+        // Draw snake (green squares) - offset by border and score area
         for (const auto& segment : snake) {
-            DrawRectangle((segment.col + borderOffset) * cellSize, (segment.row + borderOffset) * cellSize, cellSize, cellSize, snakeColor);
+            DrawRectangle((segment.col + borderOffset) * cellSize, boardStartY + (segment.row + borderOffset) * cellSize, cellSize, cellSize, snakeColor);
         }
         
         EndDrawing();
