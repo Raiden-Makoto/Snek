@@ -117,9 +117,109 @@ int main() {
     float moveTimer = 0.0f;
     const float moveInterval = 0.25f;
     bool gameOver = false;
+    bool showInstructions = true; // Show instructions screen at start
 
     // Main game loop
     while (!WindowShouldClose()) {
+        // Handle instructions screen
+        if (showInstructions) {
+            if (IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_ENTER)) {
+                showInstructions = false;
+            }
+            
+            BeginDrawing();
+            ClearBackground(BLACK);
+            
+            // Title
+            const int titleFontSize = 50;
+            string titleText = "SNAKE GAME";
+            int titleWidth = MeasureText(titleText.c_str(), titleFontSize);
+            int titleX = (screenWidth - titleWidth) / 2;
+            int titleY = 40;
+            DrawText(titleText.c_str(), titleX, titleY, titleFontSize, WHITE);
+            
+            // Instructions header
+            const int headerFontSize = 32;
+            string headerText = "APPLE TYPES";
+            int headerWidth = MeasureText(headerText.c_str(), headerFontSize);
+            int headerX = (screenWidth - headerWidth) / 2;
+            int headerY = titleY + 70;
+            DrawText(headerText.c_str(), headerX, headerY, headerFontSize, YELLOW);
+            
+            // Apple type instructions
+            const int textFontSize = 20;
+            int startY = headerY + 50;
+            int lineHeight = 28;
+            int leftMargin = 40;
+            int rightMargin = 40;
+            int currentY = startY;
+            
+            // Regular Apple
+            DrawRectangle(leftMargin - 35, currentY - 2, 25, 25, RED);
+            string regularText = "Regular Apple (Red) - 82%: Score +1, Grow +2 units";
+            DrawText(regularText.c_str(), leftMargin, currentY, textFontSize, WHITE);
+            currentY += lineHeight;
+            
+            // Poisonous Apple
+            DrawRectangle(leftMargin - 35, currentY - 2, 25, 25, poisonColor);
+            string poisonText = "Poisonous Apple (Brown) - 10%: Reverses direction, 10s debuff";
+            DrawText(poisonText.c_str(), leftMargin, currentY, textFontSize, WHITE);
+            string poisonSubText = "  Cannot eat regular/purple apples during debuff";
+            DrawText(poisonSubText.c_str(), leftMargin + 10, currentY + lineHeight - 5, textFontSize - 2, LIGHTGRAY);
+            currentY += lineHeight * 2;
+            
+            // Gold Apple
+            DrawRectangle(leftMargin - 35, currentY - 2, 25, 25, goldColor);
+            string goldText = "Gold Apple (Orange) - 4%: Score +2, Resistance 10s";
+            DrawText(goldText.c_str(), leftMargin, currentY, textFontSize, WHITE);
+            string goldSubText = "  Can pass through own body, works when poisoned";
+            DrawText(goldSubText.c_str(), leftMargin + 10, currentY + lineHeight - 5, textFontSize - 2, LIGHTGRAY);
+            currentY += lineHeight * 2;
+            
+            // Enchanted Gold Apple
+            DrawRectangle(leftMargin - 35, currentY - 2, 25, 25, enchantedGoldColor);
+            string enchantedText = "Enchanted Gold (Yellow) - 1%: Score +2, Resistance II 10s";
+            DrawText(enchantedText.c_str(), leftMargin, currentY, textFontSize, WHITE);
+            string enchantedSubText = "  Pass through body + walls, works when poisoned";
+            DrawText(enchantedSubText.c_str(), leftMargin + 10, currentY + lineHeight - 5, textFontSize - 2, LIGHTGRAY);
+            currentY += lineHeight * 2;
+            
+            // Purple Apple
+            DrawRectangle(leftMargin - 35, currentY - 2, 25, 25, purpleColor);
+            string purpleText = "Purple Apple (Purple) - 3%: Teleport to random location";
+            DrawText(purpleText.c_str(), leftMargin, currentY, textFontSize, WHITE);
+            string purpleSubText = "  No growth, cannot be eaten when poisoned";
+            DrawText(purpleSubText.c_str(), leftMargin + 10, currentY + lineHeight - 5, textFontSize - 2, LIGHTGRAY);
+            currentY += lineHeight * 2 + 20;
+            
+            // Controls header
+            string controlsHeader = "CONTROLS";
+            int controlsHeaderWidth = MeasureText(controlsHeader.c_str(), headerFontSize);
+            int controlsHeaderX = (screenWidth - controlsHeaderWidth) / 2;
+            DrawText(controlsHeader.c_str(), controlsHeaderX, currentY, headerFontSize, YELLOW);
+            currentY += lineHeight + 10;
+            
+            // Controls
+            DrawText("Arrow Keys / WASD - Move", leftMargin, currentY, textFontSize, WHITE);
+            currentY += lineHeight;
+            DrawText("P - Pause/Unpause", leftMargin, currentY, textFontSize, WHITE);
+            currentY += lineHeight;
+            DrawText("Q - Show game over screen (or quit)", leftMargin, currentY, textFontSize, WHITE);
+            currentY += lineHeight;
+            DrawText("ESC - Exit game", leftMargin, currentY, textFontSize, WHITE);
+            currentY += lineHeight;
+            DrawText("R / Space - Restart (on game over)", leftMargin, currentY, textFontSize, WHITE);
+            currentY += lineHeight * 2;
+            
+            // Start prompt
+            string startText = "Press SPACE or ENTER to start";
+            int startTextWidth = MeasureText(startText.c_str(), textFontSize + 4);
+            int startTextX = (screenWidth - startTextWidth) / 2;
+            DrawText(startText.c_str(), startTextX, currentY, textFontSize + 4, GREEN);
+            
+            EndDrawing();
+            continue; // Skip game logic while showing instructions
+        }
         float deltaTime = GetFrameTime();
         
         // Update immunity timer (only when not user paused or resuming)
@@ -202,6 +302,7 @@ int main() {
                 // Restart game - reset all state
                 gameOver = false;
                 score = 0;
+                showInstructions = false; // Don't show instructions on restart
                 
                 // Reset snake
                 snake.clear();
