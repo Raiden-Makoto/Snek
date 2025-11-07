@@ -16,7 +16,26 @@ public:
     
     // Score
     int score = 0;
-    int highScore = 0;
+    int highScoreRegular = 0;
+    int highScoreAccelerated = 0;
+    
+    // Helper to get current mode's high score
+    int GetCurrentHighScore() const {
+        return (gameMode == MODE_ACCELERATED) ? highScoreAccelerated : highScoreRegular;
+    }
+    
+    // Helper to update current mode's high score
+    void UpdateHighScore() {
+        if (gameMode == MODE_ACCELERATED) {
+            if (score > highScoreAccelerated) {
+                highScoreAccelerated = score;
+            }
+        } else {
+            if (score > highScoreRegular) {
+                highScoreRegular = score;
+            }
+        }
+    }
     
     // Snake
     std::vector<Position> snake;

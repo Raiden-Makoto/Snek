@@ -167,7 +167,7 @@ void Renderer::DrawGame(const GameState& state) {
     
     // Draw high score text
     const int highScoreFontSize = 24;
-    std::string highScoreText = "High: " + std::to_string(state.highScore);
+    std::string highScoreText = "High: " + std::to_string(state.GetCurrentHighScore());
     int highScoreX = GameConstants::SCREEN_WIDTH - MeasureText(highScoreText.c_str(), highScoreFontSize) - 20;
     int highScoreY = (GameConstants::SCORE_AREA_HEIGHT - highScoreFontSize) / 2;
     DrawText(highScoreText.c_str(), highScoreX, highScoreY, highScoreFontSize, LIGHTGRAY);
@@ -281,7 +281,7 @@ void Renderer::DrawGameOverScreen(const GameState& state) {
     int finalScoreY = gameOverY + 80;
     DrawText(finalScoreText.c_str(), finalScoreX, finalScoreY, finalScoreFontSize, WHITE);
     
-    std::string highScoreText = "High Score: " + std::to_string(state.highScore);
+    std::string highScoreText = "High Score: " + std::to_string(state.GetCurrentHighScore());
     int highScoreTextWidth = MeasureText(highScoreText.c_str(), finalScoreFontSize);
     int highScoreX = (GameConstants::SCREEN_WIDTH - highScoreTextWidth) / 2;
     int highScoreY = finalScoreY + 60;
@@ -289,14 +289,18 @@ void Renderer::DrawGameOverScreen(const GameState& state) {
     
     const int instructionFontSize = 24;
     std::string restartText = "Press R or SPACE to restart";
+    std::string menuText = "Press M to return to menu";
     std::string quitText = "Press ESC to exit or Q to quit";
     int restartTextWidth = MeasureText(restartText.c_str(), instructionFontSize);
+    int menuTextWidth = MeasureText(menuText.c_str(), instructionFontSize);
     int quitTextWidth = MeasureText(quitText.c_str(), instructionFontSize);
     int restartX = (GameConstants::SCREEN_WIDTH - restartTextWidth) / 2;
+    int menuX = (GameConstants::SCREEN_WIDTH - menuTextWidth) / 2;
     int quitX = (GameConstants::SCREEN_WIDTH - quitTextWidth) / 2;
     int instructionY = highScoreY + 80;
     DrawText(restartText.c_str(), restartX, instructionY, instructionFontSize, LIGHTGRAY);
-    DrawText(quitText.c_str(), quitX, instructionY + 35, instructionFontSize, LIGHTGRAY);
+    DrawText(menuText.c_str(), menuX, instructionY + 35, instructionFontSize, LIGHTGRAY);
+    DrawText(quitText.c_str(), quitX, instructionY + 70, instructionFontSize, LIGHTGRAY);
 }
 
 void Renderer::DrawPauseScreen(const GameState& state) {

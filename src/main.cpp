@@ -98,10 +98,39 @@ int main() {
             }
         }
         
-        // Handle game over restart
+        // Handle game over restart and menu
         if (state.gameOver) {
             if (IsKeyPressed(KEY_R) || IsKeyPressed(KEY_SPACE)) {
                 state.Reset();
+            }
+            if (IsKeyPressed(KEY_M)) {
+                // Return to mode selection menu
+                state.gameOver = false;
+                state.showModeSelection = true;
+                state.showInstructions = false;
+                state.score = 0;
+                // Reset game state but keep high scores
+                state.snake.clear();
+                state.apples.clear();
+                state.dx = 0;
+                state.dy = 0;
+                state.directionQueue.clear();
+                state.moveTimer = 0.0f;
+                state.gameTime = 0.0f;
+                state.canIntersectSelf = false;
+                state.immunityTimer = 0.0f;
+                state.canPassWalls = false;
+                state.wallImmunityTimer = 0.0f;
+                state.cannotEatApples = false;
+                state.cannotEatTimer = 0.0f;
+                state.isPaused = false;
+                state.pauseTimer = 0.0f;
+                state.isUserPaused = false;
+                state.isResuming = false;
+                state.resumeDelayTimer = 0.0f;
+                state.poisonSoundTimer = 0.0f;
+                state.pauseSoundTimer = 0.0f;
+                state.gameOverSoundPlayed = false;
             }
         }
         

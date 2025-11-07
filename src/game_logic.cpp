@@ -47,9 +47,7 @@ void GameLogic::ProcessMovement(GameState& state, float deltaTime) {
                 // Normal wall collision
                 if (newHead.col < 0 || newHead.col >= GameConstants::GRID_WIDTH || 
                     newHead.row < 0 || newHead.row >= GameConstants::GRID_HEIGHT) {
-                    if (state.score > state.highScore) {
-                        state.highScore = state.score;
-                    }
+                    state.UpdateHighScore();
                     state.gameOver = true;
                     if (!state.gameOverSoundPlayed) {
                         PlaySound(state.gameOverSound);
@@ -93,9 +91,7 @@ void GameLogic::CheckCollisions(GameState& state, Position newHead) {
     
     if (hitSelf) {
         state.snake.insert(state.snake.begin(), newHead);
-        if (state.score > state.highScore) {
-            state.highScore = state.score;
-        }
+        state.UpdateHighScore();
         state.gameOver = true;
         if (!state.gameOverSoundPlayed) {
             PlaySound(state.gameOverSound);
@@ -195,9 +191,7 @@ void GameLogic::HandleAppleConsumption(GameState& state, int eatenAppleIndex) {
     } else if (eatenFoodType == GOLDEN || eatenFoodType == ENCHANTED_GOLDEN) {
         // Gold apple
         state.score += 2;
-        if (state.score > state.highScore) {
-            state.highScore = state.score;
-        }
+        state.UpdateHighScore();
         
         state.snake.push_back(state.snake.back());
         state.canIntersectSelf = true;
@@ -213,9 +207,7 @@ void GameLogic::HandleAppleConsumption(GameState& state, int eatenAppleIndex) {
         // Regular apple
         if (!state.cannotEatApples) {
             state.score++;
-            if (state.score > state.highScore) {
-                state.highScore = state.score;
-            }
+            state.UpdateHighScore();
             state.snake.push_back(state.snake.back());
             PlaySound(state.appleSound);
         } else {
