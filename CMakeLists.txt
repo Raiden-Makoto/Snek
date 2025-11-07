@@ -12,8 +12,13 @@ if(APPLE)
     set(CMAKE_OSX_DEPLOYMENT_TARGET "10.9")
 endif()
 
-# Add executable
-add_executable(snake src/main.cpp)
+# Add executable with all source files
+add_executable(snake 
+    src/main.cpp
+    src/game_state.cpp
+    src/game_logic.cpp
+    src/renderer.cpp
+)
 
 # Find raylib
 find_package(raylib QUIET)
