@@ -37,7 +37,14 @@ int main() {
     const int gridHeight = totalGridHeight - 2;
     const int borderOffset = 1; // Border starts at cell 0, playable area starts at cell 1
     const Color grayColor = {18, 18, 18, 255}; // Very dark gray
-    const Color snakeColor = {50, 150, 50, 255}; // Green for snake
+    const Color snakeColor = {50, 150, 50, 255}; // Green for snake body
+    const Color snakeHeadColor = {25, 100, 25, 255}; // Darker green for snake head
+    const Color poisonColor = {181, 126, 107, 255}; // Light brown for poisonous apple
+    const Color goldColor = {255, 165, 0, 255}; // Orange for gold apple
+    const Color enchantedGoldColor = {255, 255, 0, 255}; // Yellow for enchanted gold apple
+    const Color purpleColor = {186, 85, 211, 255}; // Purple for teleport apple
+    
+    enum FoodType { REGULAR, POISONOUS, GOLDEN, ENCHANTED_GOLDEN, TELEPORT };
     
     // Initialize random seed
     SetRandomSeed((unsigned int)time(nullptr));
@@ -51,10 +58,46 @@ int main() {
     
     // Food position (in playable area)
     int foodCol, foodRow;
+    FoodType foodType = REGULAR;
+    
+    // Self-intersection immunity timer (for gold apple effect)
+    float immunityTimer = 0.0f;
+    const float immunityDuration = 5.0f;
+    bool canIntersectSelf = false;
+    
+    // Wall-wrapping immunity timer (for enchanted gold apple effect)
+    float wallImmunityTimer = 0.0f;
+    const float wallImmunityDuration = 5.0f;
+    bool canPassWalls = false;
+    
+    // Cannot eat apples debuff timer (for poisonous apple effect)
+    float cannotEatTimer = 0.0f;
+    const float cannotEatDuration = 5.0f;
+    bool cannotEatApples = false;
+    
+    // Movement pause timer (after eating poisonous apple)
+    float pauseTimer = 0.0f;
+    const float pauseDuration = 0.5f;
+    bool isPaused = false;
+    
     do {
         foodCol = GetRandomValue(0, gridWidth - 1);
         foodRow = GetRandomValue(0, gridHeight - 1);
     } while (foodCol == snake[0].col && foodRow == snake[0].row);
+    
+    // Determine food type: 4% regular gold, 1% enchanted gold, 10% poison, 3% purple, 82% regular
+    int foodRoll = GetRandomValue(1, 100);
+    if (foodRoll <= 4) {
+        foodType = GOLDEN;
+    } else if (foodRoll <= 5) {
+        foodType = ENCHANTED_GOLDEN;
+    } else if (foodRoll <= 15) {
+        foodType = POISONOUS;
+    } else if (foodRoll <= 18) {
+        foodType = TELEPORT;
+    } else {
+        foodType = REGULAR;
+    }
     
     // Direction: starts at (0, 0) - not moving
     int dx = 0;
@@ -71,6 +114,94 @@ int main() {
     // Main game loop
     while (!WindowShouldClose()) {
         float deltaTime = GetFrameTime();
+        
+        // Update immunity timer
+        if (canIntersectSelf) {
+            immunityTimer -= deltaTime;
+            if (immunityTimer <= 0.0f) {
+                canIntersectSelf = false;
+                immunityTimer = 0.0f;
+            }
+        }
+        
+        // Update cannot eat apples debuff timer
+        if (cannotEatApples) {
+            cannotEatTimer -= deltaTime;
+            if (cannotEatTimer <= 0.0f) {
+                cannotEatApples = false;
+                cannotEatTimer = 0.0f;
+            }
+        }
+        
+        // Update wall-wrapping immunity timer
+        if (canPassWalls) {
+            wallImmunityTimer -= deltaTime;
+            if (wallImmunityTimer <= 0.0f) {
+                canPassWalls = false;
+                wallImmunityTimer = 0.0f;
+            }
+        }
+        
+        // Update movement pause timer
+        if (isPaused) {
+            pauseTimer -= deltaTime;
+            if (pauseTimer <= 0.0f) {
+                isPaused = false;
+                pauseTimer = 0.0f;
+            }
+        }
+        
+        // Handle game over screen input
+        if (gameOver) {
+            if (IsKeyPressed(KEY_ESCAPE) || IsKeyPressed(KEY_Q)) {
+                break; // Exit game loop
+            }
+            if (IsKeyPressed(KEY_R) || IsKeyPressed(KEY_SPACE)) {
+                // Restart game - reset all state
+                gameOver = false;
+                score = 0;
+                
+                // Reset snake
+                snake.clear();
+                snake.push_back({GetRandomValue(0, gridWidth - 1), GetRandomValue(0, gridHeight - 1)});
+                
+                // Reset food
+                do {
+                    foodCol = GetRandomValue(0, gridWidth - 1);
+                    foodRow = GetRandomValue(0, gridHeight - 1);
+                } while (foodCol == snake[0].col && foodRow == snake[0].row);
+                
+                // Reset food type
+                int foodRoll = GetRandomValue(1, 100);
+                if (foodRoll <= 4) {
+                    foodType = GOLDEN;
+                } else if (foodRoll <= 5) {
+                    foodType = ENCHANTED_GOLDEN;
+                } else if (foodRoll <= 15) {
+                    foodType = POISONOUS;
+                } else if (foodRoll <= 18) {
+                    foodType = TELEPORT;
+                } else {
+                    foodType = REGULAR;
+                }
+                
+                // Reset direction and movement
+                dx = 0;
+                dy = 0;
+                directionQueue.clear();
+                moveTimer = 0.0f;
+                
+                // Reset all timers and effects
+                canIntersectSelf = false;
+                immunityTimer = 0.0f;
+                canPassWalls = false;
+                wallImmunityTimer = 0.0f;
+                cannotEatApples = false;
+                cannotEatTimer = 0.0f;
+                isPaused = false;
+                pauseTimer = 0.0f;
+            }
+        }
         
         if (!gameOver) {
             // Handle input for direction change - add to deque
@@ -113,10 +244,13 @@ int main() {
             }
             
             // Update movement timer (always runs, even when stationary, to allow starting)
-            moveTimer += deltaTime;
+            // Skip timer update if paused
+            if (!isPaused) {
+                moveTimer += deltaTime;
+            }
             
-            // Process movement when timer elapses
-            if (moveTimer >= moveInterval) {
+            // Process movement when timer elapses (skip if paused)
+            if (!isPaused && moveTimer >= moveInterval) {
                 moveTimer = 0.0f;
                 
                 // Process direction queue (get next direction if available)
@@ -135,21 +269,42 @@ int main() {
                     // Calculate new head position
                     Position newHead = {snake[0].col + dx, snake[0].row + dy};
                     
-                    // Check wall collision
-                    if (newHead.col < 0 || newHead.col >= gridWidth || 
-                        newHead.row < 0 || newHead.row >= gridHeight) {
-                        gameOver = true;
+                    // Check wall collision (wrap around if canPassWalls is enabled)
+                    if (canPassWalls) {
+                        // Wrap around the edges
+                        if (newHead.col < 0) {
+                            newHead.col = gridWidth - 1;
+                        } else if (newHead.col >= gridWidth) {
+                            newHead.col = 0;
+                        }
+                        if (newHead.row < 0) {
+                            newHead.row = gridHeight - 1;
+                        } else if (newHead.row >= gridHeight) {
+                            newHead.row = 0;
+                        }
                     } else {
-                        // Check self collision
+                        // Normal wall collision
+                        if (newHead.col < 0 || newHead.col >= gridWidth || 
+                            newHead.row < 0 || newHead.row >= gridHeight) {
+                            gameOver = true;
+                        }
+                    }
+                    
+                    if (!gameOver) {
+                        // Check self collision (only if not immune)
                         bool hitSelf = false;
-                        for (const auto& segment : snake) {
-                            if (newHead.col == segment.col && newHead.row == segment.row) {
-                                hitSelf = true;
-                                break;
+                        if (!canIntersectSelf) {
+                            for (const auto& segment : snake) {
+                                if (newHead.col == segment.col && newHead.row == segment.row) {
+                                    hitSelf = true;
+                                    break;
+                                }
                             }
                         }
                         
                         if (hitSelf) {
+                            // Add the head position so it's drawn over the body part it collided with
+                            snake.insert(snake.begin(), newHead);
                             gameOver = true;
                         } else {
                             // Check if snake ate food
@@ -159,15 +314,115 @@ int main() {
                             snake.insert(snake.begin(), newHead);
                             
                             if (ateFood) {
-                                // Increase score
-                                score++;
+                                if (foodType == POISONOUS) {
+                                    // Poisonous apple - pause movement for 0.5 seconds before reversing
+                                    isPaused = true;
+                                    pauseTimer = pauseDuration;
+                                    
+                                    // Store the reverse direction (will be applied after pause)
+                                    // We'll reverse direction after the pause, so store current direction
+                                    // Clear direction queue to avoid confusion
+                                    directionQueue.clear();
+                                    
+                                    // Reverse the snake body (head becomes tail, tail becomes head)
+                                    reverse(snake.begin(), snake.end());
+                                    
+                                    // Remove tail since we reversed (we just added a new head, need to remove old tail)
+                                    snake.pop_back();
+                                    
+                                    // Reverse direction (but movement is paused)
+                                    dx = -dx;
+                                    dy = -dy;
+                                    
+                                    // Enable cannot eat apples debuff for 5 seconds
+                                    cannotEatApples = true;
+                                    cannotEatTimer = cannotEatDuration;
+                                } else if (foodType == TELEPORT) {
+                                    // Purple apple - teleport snake to random location with random orientation
+                                    // Remove the head we just added (since we're teleporting)
+                                    snake.erase(snake.begin());
+                                    
+                                    // Save current snake length
+                                    int snakeLength = snake.size();
+                                    
+                                    // Find a random valid position for the snake head (not on food)
+                                    int newHeadCol, newHeadRow;
+                                    bool validTeleportPos = false;
+                                    do {
+                                        newHeadCol = GetRandomValue(0, gridWidth - 1);
+                                        newHeadRow = GetRandomValue(0, gridHeight - 1);
+                                        
+                                        // Check if position is not on food
+                                        validTeleportPos = (newHeadCol != foodCol || newHeadRow != foodRow);
+                                    } while (!validTeleportPos);
+                                    
+                                    // Choose a random direction
+                                    int dirRoll = GetRandomValue(0, 3);
+                                    switch (dirRoll) {
+                                        case 0: dx = 0; dy = -1; break; // UP
+                                        case 1: dx = 0; dy = 1; break;  // DOWN
+                                        case 2: dx = -1; dy = 0; break; // LEFT
+                                        case 3: dx = 1; dy = 0; break;  // RIGHT
+                                    }
+                                    
+                                    // Rebuild snake at new position with new orientation
+                                    snake.clear();
+                                    snake.push_back({newHeadCol, newHeadRow});
+                                    
+                                    // Add body segments behind head in opposite direction of movement
+                                    for (int i = 1; i < snakeLength; i++) {
+                                        int segCol = newHeadCol - dx * i;
+                                        int segRow = newHeadRow - dy * i;
+                                        
+                                        // Keep segments within bounds (clamp to edges)
+                                        if (segCol < 0) segCol = 0;
+                                        if (segCol >= gridWidth) segCol = gridWidth - 1;
+                                        if (segRow < 0) segRow = 0;
+                                        if (segRow >= gridHeight) segRow = gridHeight - 1;
+                                        
+                                        snake.push_back({segCol, segRow});
+                                    }
+                                    
+                                    // Clear direction queue and stop movement (wait for user input)
+                                    directionQueue.clear();
+                                    dx = 0;
+                                    dy = 0;
+                                    moveTimer = 0.0f; // Reset movement timer
+                                } else if (foodType == GOLDEN || foodType == ENCHANTED_GOLDEN) {
+                                    // Gold apple (regular or enchanted) - always works, even with debuff
+                                    // Increase score by 2, grow, and enable self-intersection
+                                    score += 2;
+                                    
+                                    // Snake grows by 2 units
+                                    snake.push_back(snake.back());
+                                    
+                                    // Enable self-intersection for 5 seconds
+                                    canIntersectSelf = true;
+                                    immunityTimer = immunityDuration;
+                                    
+                                    // Enchanted gold apples also enable wall-wrapping
+                                    if (foodType == ENCHANTED_GOLDEN) {
+                                        canPassWalls = true;
+                                        wallImmunityTimer = wallImmunityDuration;
+                                    }
+                                } else {
+                                    // Regular apple - only works if not debuffed
+                                    if (!cannotEatApples) {
+                                        // Increase score and grow
+                                        score++;
+                                        
+                                        // Snake grows by 2 units: 
+                                        // 1. Don't remove tail (already grows by 1 from adding new head)
+                                        // 2. Add an extra segment at the tail to grow by 2 total
+                                        snake.push_back(snake.back());
+                                    } else {
+                                        // If debuffed, apple is consumed but doesn't give benefits
+                                        // Remove the tail to keep snake length the same
+                                        snake.pop_back();
+                                    }
+                                }
                                 
-                                // Snake grows by 2 units: 
-                                // 1. Don't remove tail (already grows by 1 from adding new head)
-                                // 2. Add an extra segment at the tail to grow by 2 total
-                                snake.push_back(snake.back());
-                                
-                                // Spawn new food in a location not covered by snake
+                                // Spawn new food in a location not covered by snake (always spawn new food when any apple is eaten)
                                 bool validPosition = false;
                                 do {
                                     foodCol = GetRandomValue(0, gridWidth - 1);
@@ -182,6 +437,20 @@ int main() {
                                         }
                                     }
                                 } while (!validPosition);
+                                
+                                // Determine food type: 4% regular gold, 1% enchanted gold, 10% poison, 3% purple, 82% regular
+                                int foodRoll = GetRandomValue(1, 100);
+                                if (foodRoll <= 4) {
+                                    foodType = GOLDEN;
+                                } else if (foodRoll <= 5) {
+                                    foodType = ENCHANTED_GOLDEN;
+                                } else if (foodRoll <= 15) {
+                                    foodType = POISONOUS;
+                                } else if (foodRoll <= 18) {
+                                    foodType = TELEPORT;
+                                } else {
+                                    foodType = REGULAR;
+                                }
                             } else {
                                 // Remove tail (snake didn't grow)
                                 snake.pop_back();
@@ -240,12 +509,65 @@ int main() {
             }
         }
         
-        // Draw food (red square) - offset by border and score area
-        DrawRectangle((foodCol + borderOffset) * cellSize, boardStartY + (foodRow + borderOffset) * cellSize, cellSize, cellSize, RED);
+        // Draw food (red for normal, light brown for poisonous, orange-yellow for gold, brighter yellow for enchanted gold, purple for teleport) - offset by border and score area
+        Color foodColor;
+        if (foodType == ENCHANTED_GOLDEN) {
+            foodColor = enchantedGoldColor;
+        } else if (foodType == GOLDEN) {
+            foodColor = goldColor;
+        } else if (foodType == POISONOUS) {
+            foodColor = poisonColor;
+        } else if (foodType == TELEPORT) {
+            foodColor = purpleColor;
+        } else {
+            foodColor = RED;
+        }
+        DrawRectangle((foodCol + borderOffset) * cellSize, boardStartY + (foodRow + borderOffset) * cellSize, cellSize, cellSize, foodColor);
         
-        // Draw snake (green squares) - offset by border and score area
-        for (const auto& segment : snake) {
+        // Draw snake body first (regular green) - offset by border and score area
+        for (size_t i = 1; i < snake.size(); i++) {
+            const auto& segment = snake[i];
             DrawRectangle((segment.col + borderOffset) * cellSize, boardStartY + (segment.row + borderOffset) * cellSize, cellSize, cellSize, snakeColor);
+        }
+        
+        // Draw snake head last (darker green) so it appears on top - offset by border and score area
+        if (!snake.empty()) {
+            const auto& head = snake[0];
+            DrawRectangle((head.col + borderOffset) * cellSize, boardStartY + (head.row + borderOffset) * cellSize, cellSize, cellSize, snakeHeadColor);
+        }
+        
+        // Draw game over screen overlay
+        if (gameOver) {
+            // Semi-transparent overlay
+            DrawRectangle(0, 0, screenWidth, screenHeight, {0, 0, 0, 180});
+            
+            // Game Over text
+            const int gameOverFontSize = 60;
+            string gameOverText = "GAME OVER";
+            int gameOverTextWidth = MeasureText(gameOverText.c_str(), gameOverFontSize);
+            int gameOverX = (screenWidth - gameOverTextWidth) / 2;
+            int gameOverY = screenHeight / 2 - 100;
+            DrawText(gameOverText.c_str(), gameOverX, gameOverY, gameOverFontSize, WHITE);
+            
+            // Final score
+            const int finalScoreFontSize = 40;
+            string finalScoreText = "Final Score: " + to_string(score);
+            int finalScoreTextWidth = MeasureText(finalScoreText.c_str(), finalScoreFontSize);
+            int finalScoreX = (screenWidth - finalScoreTextWidth) / 2;
+            int finalScoreY = gameOverY + 80;
+            DrawText(finalScoreText.c_str(), finalScoreX, finalScoreY, finalScoreFontSize, WHITE);
+            
+            // Instructions
+            const int instructionFontSize = 24;
+            string restartText = "Press R or SPACE to restart";
+            string quitText = "Press ESC or Q to quit";
+            int restartTextWidth = MeasureText(restartText.c_str(), instructionFontSize);
+            int quitTextWidth = MeasureText(quitText.c_str(), instructionFontSize);
+            int restartX = (screenWidth - restartTextWidth) / 2;
+            int quitX = (screenWidth - quitTextWidth) / 2;
+            int instructionY = finalScoreY + 80;
+            DrawText(restartText.c_str(), restartX, instructionY, instructionFontSize, LIGHTGRAY);
+            DrawText(quitText.c_str(), quitX, instructionY + 35, instructionFontSize, LIGHTGRAY);
         }
         
         EndDrawing();
