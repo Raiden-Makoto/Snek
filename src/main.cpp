@@ -51,6 +51,7 @@ int main() {
     
     // Score
     int score = 0;
+    int highScore = 0; // Session high score
     
     // Snake starts as a single segment (in playable area, offset by border)
     vector<Position> snake;
@@ -62,17 +63,17 @@ int main() {
     
     // Self-intersection immunity timer (for gold apple effect)
     float immunityTimer = 0.0f;
-    const float immunityDuration = 5.0f;
+    const float immunityDuration = 10.0f;
     bool canIntersectSelf = false;
     
     // Wall-wrapping immunity timer (for enchanted gold apple effect)
     float wallImmunityTimer = 0.0f;
-    const float wallImmunityDuration = 5.0f;
+    const float wallImmunityDuration = 10.0f;
     bool canPassWalls = false;
     
     // Cannot eat apples debuff timer (for poisonous apple effect)
     float cannotEatTimer = 0.0f;
-    const float cannotEatDuration = 5.0f;
+    const float cannotEatDuration = 10.0f;
     bool cannotEatApples = false;
     
     // Movement pause timer (after eating poisonous apple)
@@ -168,9 +169,18 @@ int main() {
             }
         }
         
-        // Handle quit input (available at all times)
-        if (IsKeyPressed(KEY_ESCAPE) || IsKeyPressed(KEY_Q)) {
-            break; // Exit game loop
+        // Handle quit input
+        if (IsKeyPressed(KEY_ESCAPE)) {
+            break; // ESC always exits immediately
+        }
+        
+        // Q key: show game over screen if not game over, otherwise exit
+        if (IsKeyPressed(KEY_Q)) {
+            if (!gameOver) {
+                gameOver = true; // Show game over screen
+            } else {
+                break; // Exit if already on game over screen
+            }
         }
         
         // Handle user pause toggle (P key) - available when game is not over
@@ -321,6 +331,10 @@ int main() {
                         // Normal wall collision
                         if (newHead.col < 0 || newHead.col >= gridWidth || 
                             newHead.row < 0 || newHead.row >= gridHeight) {
+                            // Update high score before game over
+                            if (score > highScore) {
+                                highScore = score;
+                            }
                             gameOver = true;
                         }
                     }
@@ -340,6 +354,10 @@ int main() {
                         if (hitSelf) {
                             // Add the head position so it's drawn over the body part it collided with
                             snake.insert(snake.begin(), newHead);
+                            // Update high score before game over
+                            if (score > highScore) {
+                                highScore = score;
+                            }
                             gameOver = true;
                         } else {
                             // Check if snake ate food
@@ -358,13 +376,13 @@ int main() {
                                     // We'll reverse direction after the pause, so store current direction
                                     // Clear direction queue to avoid confusion
                                     directionQueue.clear();
-                                    
+
                                     // Reverse the snake body (head becomes tail, tail becomes head)
                                     reverse(snake.begin(), snake.end());
-                                    
+
                                     // Remove tail since we reversed (we just added a new head, need to remove old tail)
                                     snake.pop_back();
-                                    
+
                                     // Reverse direction (but movement is paused)
                                     dx = -dx;
                                     dy = -dy;
@@ -373,60 +391,70 @@ int main() {
                                     cannotEatApples = true;
                                     cannotEatTimer = cannotEatDuration;
                                 } else if (foodType == TELEPORT) {
-                                    // Purple apple - teleport snake to random location with random orientation
-                                    // Remove the head we just added (since we're teleporting)
-                                    snake.erase(snake.begin());
-                                    
-                                    // Save current snake length
-                                    int snakeLength = snake.size();
-                                    
-                                    // Find a random valid position for the snake head (not on food)
-                                    int newHeadCol, newHeadRow;
-                                    bool validTeleportPos = false;
-                                    do {
-                                        newHeadCol = GetRandomValue(0, gridWidth - 1);
-                                        newHeadRow = GetRandomValue(0, gridHeight - 1);
+                                    // Purple apple - only works if not debuffed (same as regular apples)
+                                    if (!cannotEatApples) {
+                                        // Purple apple - teleport snake to random location with random orientation
+                                        // Remove the head we just added (since we're teleporting)
+                                        snake.erase(snake.begin());
                                         
-                                        // Check if position is not on food
-                                        validTeleportPos = (newHeadCol != foodCol || newHeadRow != foodRow);
-                                    } while (!validTeleportPos);
-                                    
-                                    // Choose a random direction
-                                    int dirRoll = GetRandomValue(0, 3);
-                                    switch (dirRoll) {
-                                        case 0: dx = 0; dy = -1; break; // UP
-                                        case 1: dx = 0; dy = 1; break;  // DOWN
-                                        case 2: dx = -1; dy = 0; break; // LEFT
-                                        case 3: dx = 1; dy = 0; break;  // RIGHT
+                                        // Save current snake length (before removing head)
+                                        int snakeLength = snake.size();
+                                        
+                                        // Find a random valid position for the snake head (not on food)
+                                        int newHeadCol, newHeadRow;
+                                        bool validTeleportPos = false;
+                                        do {
+                                            newHeadCol = GetRandomValue(0, gridWidth - 1);
+                                            newHeadRow = GetRandomValue(0, gridHeight - 1);
+                                            
+                                            // Check if position is not on food
+                                            validTeleportPos = (newHeadCol != foodCol || newHeadRow != foodRow);
+                                        } while (!validTeleportPos);
+                                        
+                                        // Choose a random direction
+                                        int dirRoll = GetRandomValue(0, 3);
+                                        switch (dirRoll) {
+                                            case 0: dx = 0; dy = -1; break; // UP
+                                            case 1: dx = 0; dy = 1; break;  // DOWN
+                                            case 2: dx = -1; dy = 0; break; // LEFT
+                                            case 3: dx = 1; dy = 0; break;  // RIGHT
+                                        }
+                                        
+                                        // Rebuild snake at new position with new orientation (same length)
+                                        snake.clear();
+                                        snake.push_back({newHeadCol, newHeadRow});
+                                        
+                                        // Add body segments behind head in opposite direction of movement
+                                        for (int i = 1; i < snakeLength; i++) {
+                                            int segCol = newHeadCol - dx * i;
+                                            int segRow = newHeadRow - dy * i;
+                                            
+                                            // Keep segments within bounds (clamp to edges)
+                                            if (segCol < 0) segCol = 0;
+                                            if (segCol >= gridWidth) segCol = gridWidth - 1;
+                                            if (segRow < 0) segRow = 0;
+                                            if (segRow >= gridHeight) segRow = gridHeight - 1;
+                                            
+                                            snake.push_back({segCol, segRow});
+                                        }
+                                        
+                                        // Clear direction queue and stop movement (wait for user input)
+                                        directionQueue.clear();
+                                        dx = 0;
+                                        dy = 0;
+                                        moveTimer = 0.0f; // Reset movement timer
+                                    } else {
+                                        // If debuffed, purple apple is consumed but doesn't teleport
+                                        // Remove the tail to keep snake length the same (no growth)
+                                        snake.pop_back();
                                     }
-                                    
-                                    // Rebuild snake at new position with new orientation
-                                    snake.clear();
-                                    snake.push_back({newHeadCol, newHeadRow});
-                                    
-                                    // Add body segments behind head in opposite direction of movement
-                                    for (int i = 1; i < snakeLength; i++) {
-                                        int segCol = newHeadCol - dx * i;
-                                        int segRow = newHeadRow - dy * i;
-                                        
-                                        // Keep segments within bounds (clamp to edges)
-                                        if (segCol < 0) segCol = 0;
-                                        if (segCol >= gridWidth) segCol = gridWidth - 1;
-                                        if (segRow < 0) segRow = 0;
-                                        if (segRow >= gridHeight) segRow = gridHeight - 1;
-                                        
-                                        snake.push_back({segCol, segRow});
-                                    }
-                                    
-                                    // Clear direction queue and stop movement (wait for user input)
-                                    directionQueue.clear();
-                                    dx = 0;
-                                    dy = 0;
-                                    moveTimer = 0.0f; // Reset movement timer
                                 } else if (foodType == GOLDEN || foodType == ENCHANTED_GOLDEN) {
                                     // Gold apple (regular or enchanted) - always works, even with debuff
                                     // Increase score by 2, grow, and enable self-intersection
                                     score += 2;
+                                    if (score > highScore) {
+                                        highScore = score;
+                                    }
                                     
                                     // Snake grows by 2 units
                                     snake.push_back(snake.back());
@@ -445,6 +473,9 @@ int main() {
                                     if (!cannotEatApples) {
                                         // Increase score and grow
                                         score++;
+                                        if (score > highScore) {
+                                            highScore = score;
+                                        }
                                         
                                         // Snake grows by 2 units: 
                                         // 1. Don't remove tail (already grows by 1 from adding new head)
@@ -511,6 +542,48 @@ int main() {
         int textX = (screenWidth - textWidth) / 2;
         int textY = (scoreAreaHeight - fontSize) / 2;
         DrawText(scoreText.c_str(), textX, textY, fontSize, WHITE);
+        
+        // Draw high score text (smaller, to the right)
+        const int highScoreFontSize = 24;
+        string highScoreText = "High: " + to_string(highScore);
+        int highScoreX = screenWidth - MeasureText(highScoreText.c_str(), highScoreFontSize) - 20;
+        int highScoreY = (scoreAreaHeight - highScoreFontSize) / 2;
+        DrawText(highScoreText.c_str(), highScoreX, highScoreY, highScoreFontSize, LIGHTGRAY);
+        
+        // Draw status effect countdowns (top right, below high score)
+        const int statusFontSize = 18;
+        int statusY = highScoreY + highScoreFontSize + 5;
+        int statusRightMargin = 20;
+        Color statusColor;
+        
+        // Draw poisoned status (if active)
+        if (cannotEatApples && cannotEatTimer > 0.0f) {
+            int countdown = (int)ceil(cannotEatTimer);
+            string statusText = "Poisoned: " + to_string(countdown);
+            int statusX = screenWidth - MeasureText(statusText.c_str(), statusFontSize) - statusRightMargin;
+            statusColor = {181, 126, 107, 255}; // Light brown (same as poison apple)
+            DrawText(statusText.c_str(), statusX, statusY, statusFontSize, statusColor);
+            statusY += statusFontSize + 3;
+        }
+        
+        // Draw Resistance status (self-intersection immunity from gold apple)
+        if (canIntersectSelf && immunityTimer > 0.0f) {
+            int countdown = (int)ceil(immunityTimer);
+            string statusText = "Resistance: " + to_string(countdown);
+            int statusX = screenWidth - MeasureText(statusText.c_str(), statusFontSize) - statusRightMargin;
+            statusColor = {255, 165, 0, 255}; // Orange (same as gold apple)
+            DrawText(statusText.c_str(), statusX, statusY, statusFontSize, statusColor);
+            statusY += statusFontSize + 3;
+        }
+        
+        // Draw Resistance II status (wall-wrapping from enchanted gold apple)
+        if (canPassWalls && wallImmunityTimer > 0.0f) {
+            int countdown = (int)ceil(wallImmunityTimer);
+            string statusText = "Resistance II: " + to_string(countdown);
+            int statusX = screenWidth - MeasureText(statusText.c_str(), statusFontSize) - statusRightMargin;
+            statusColor = {255, 255, 0, 255}; // Yellow (same as enchanted gold apple)
+            DrawText(statusText.c_str(), statusX, statusY, statusFontSize, statusColor);
+        }
         
         // Draw white border cells (1 cell thick on all sides) - offset by score area
         // Top border
@@ -586,7 +659,7 @@ int main() {
             
             // Instructions
             const int instructionFontSize = 24;
-            string resumeText = "Press P to resume";
+            string resumeText = "Press P to resume (or Q to quit)";
             int resumeTextWidth = MeasureText(resumeText.c_str(), instructionFontSize);
             int resumeX = (screenWidth - resumeTextWidth) / 2;
             DrawText(resumeText.c_str(), resumeX, pauseY + 80, instructionFontSize, LIGHTGRAY);
@@ -628,15 +701,23 @@ int main() {
             int finalScoreY = gameOverY + 80;
             DrawText(finalScoreText.c_str(), finalScoreX, finalScoreY, finalScoreFontSize, WHITE);
             
+            // High score (same font size as final score)
+            const int highScoreFontSize = 40;
+            string highScoreText = "High Score: " + to_string(highScore);
+            int highScoreTextWidth = MeasureText(highScoreText.c_str(), highScoreFontSize);
+            int highScoreX = (screenWidth - highScoreTextWidth) / 2;
+            int highScoreY = finalScoreY + 60;
+            DrawText(highScoreText.c_str(), highScoreX, highScoreY, highScoreFontSize, YELLOW);
+            
             // Instructions
             const int instructionFontSize = 24;
             string restartText = "Press R or SPACE to restart";
-            string quitText = "Press ESC or Q to quit (anytime)";
+            string quitText = "Press ESC to exit or Q to quit";
             int restartTextWidth = MeasureText(restartText.c_str(), instructionFontSize);
             int quitTextWidth = MeasureText(quitText.c_str(), instructionFontSize);
             int restartX = (screenWidth - restartTextWidth) / 2;
             int quitX = (screenWidth - quitTextWidth) / 2;
-            int instructionY = finalScoreY + 80;
+            int instructionY = highScoreY + 80; // More spacing after high score
             DrawText(restartText.c_str(), restartX, instructionY, instructionFontSize, LIGHTGRAY);
             DrawText(quitText.c_str(), quitX, instructionY + 35, instructionFontSize, LIGHTGRAY);
         }
