@@ -1,0 +1,42 @@
+# CMakeLists.txt for Web (Emscripten) Build
+cmake_minimum_required(VERSION 3.11)
+project(SnakeGameWeb)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# Emscripten-specific settings
+set(CMAKE_EXECUTABLE_SUFFIX ".html")
+
+# Add executable
+add_executable(snake 
+    src/main.cpp
+    src/game_state.cpp
+    src/game_logic.cpp
+    src/renderer.cpp
+)
+
+# Raylib linking for web
+# Note: You may need to build raylib with Emscripten first
+# Or use raylib's web port
+
+# Emscripten compiler flags
+target_compile_options(snake PRIVATE
+    -s USE_GLFW=3
+    -s WASM=1
+    -s ALLOW_MEMORY_GROWTH=1
+    -s INITIAL_MEMORY=67108864
+    -s MAX_WEBGL_VERSION=2
+    -s MIN_WEBGL_VERSION=2
+    --preload-file sounds
+    -s EXPORTED_RUNTIME_METHODS='["ccall","cwrap"]'
+    -s EXPORTED_FUNCTIONS='["_main"]'
+)
+
+# Link libraries
+# Note: Adjust paths based on your raylib installation
+# target_link_libraries(snake raylib)
+
+# Alternative: If raylib web port is available
+# find_package(raylib_web)
+
